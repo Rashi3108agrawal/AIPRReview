@@ -1,4 +1,4 @@
-name: CI
+name: AI PR Review CI
 
 on:
   push:
@@ -96,9 +96,9 @@ jobs:
       - name: Generate demo credentials
         run: |
           {
-            echo "CODESAGE_DEMO_POSTGRES_USER=codesage"
+            echo "CODESAGE_DEMO_POSTGRES_USER=reviewdemo"
             echo "CODESAGE_DEMO_POSTGRES_PASSWORD=$(openssl rand -hex 24)"
-            echo "CODESAGE_DEMO_RABBITMQ_USERNAME=codesage"
+            echo "CODESAGE_DEMO_RABBITMQ_USERNAME=reviewdemo"
             echo "CODESAGE_DEMO_RABBITMQ_PASSWORD=$(openssl rand -hex 24)"
           } >> "$GITHUB_ENV"
       - name: Build demo stack

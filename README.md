@@ -1,110 +1,154 @@
-# CodeSage
+# AI PR Review
 
-[![CI](https://github.com/albonidrizi/code-sage/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/albonidrizi/code-sage/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/albonidrizi/code-sage/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/albonidrizi/code-sage/actions/workflows/codeql.yml)
+## Overview
 
-CodeSage is a reference implementation of an asynchronous pull-request review service. It validates GitHub webhooks,
-queues review work, prevents duplicate reviews, runs OpenAI, Claude, or deterministic demo analysis providers,
-persists findings, exposes metrics, and presents results in a React dashboard.
+AI PR Review is an AI-powered pull request review platform that helps engineering teams identify bugs, security risks, performance issues, architectural concerns, and code quality violations before merge.
 
-It is a portfolio/reference project, not a hosted production service.
+The service receives GitHub pull-request webhooks, processes review work asynchronously, stores findings, and publishes review comments back to GitHub. The web workspace presents recent reviews, quality scores, review status, and findings by severity.
 
-## Verified capabilities
+## Product Preview
 
-- Constant-time HMAC-SHA256 GitHub webhook verification
-- PostgreSQL-backed duplicate-review prevention
-- RabbitMQ analysis, retry, and dead-letter queues
-- OpenAI and Claude provider adapters with deterministic demo fallback
-- AI provider and GitHub operation interfaces with prompt-injection-aware review prompts
-- Micrometer/Prometheus review, provider, queue, token, and cost metrics
-- Responsive review command-center dashboard
-- CI coverage, dependency, secret, CodeQL, Trivy, Docker-build, and demo-smoke gates
+![AI PR Review dashboard showing review activity, severity distribution, and the pull request queue](frontend/public/ai-pr-review-dashboard.png)
 
-See [architecture](docs/architecture.md), [threat model](docs/threat-model.md), [performance](docs/performance.md), and
-[security policy](SECURITY.md).
+*The dashboard shown with deterministic demonstration reviews.*
 
-## Public evidence
+## Demo
 
-| Evidence | Status |
-|---|---|
-| Main-branch CI | [Passing run: backend, frontend, dependency audit, security, and Docker demo smoke](https://github.com/albonidrizi/code-sage/actions/runs/27479507566) |
-| Code scanning | [Passing scheduled CodeQL run](https://github.com/albonidrizi/code-sage/actions/runs/27540400113) |
-| Architecture decisions | [Deterministic demo provider](docs/decisions/0001-deterministic-demo-provider.md) and [queue retry/DLQ](docs/decisions/0002-queue-retry-and-dlq.md) |
-| Metrics | [Prometheus metric surface and reproducible measurement command](docs/performance.md) |
-| Hosted deployment, release, and demo video | Not currently published; use the reproducible Docker Compose demo below |
+Try the complete review workflow locally with Docker Compose. The demo uses a deterministic provider, so GitHub App credentials and AI provider keys are not required. Docker Compose must be installed.
 
-## Demo quick start
-
-Requirements: Docker with Compose.
-
-PowerShell:
+In PowerShell, generate local credentials and start the demo:
 
 ```powershell
-$env:CODESAGE_DEMO_POSTGRES_USER = "codesage"
+$env:CODESAGE_DEMO_POSTGRES_USER = "reviewdemo"
 $env:CODESAGE_DEMO_POSTGRES_PASSWORD = (New-Guid).Guid
-$env:CODESAGE_DEMO_RABBITMQ_USERNAME = "codesage"
+$env:CODESAGE_DEMO_RABBITMQ_USERNAME = "reviewdemo"
 $env:CODESAGE_DEMO_RABBITMQ_PASSWORD = (New-Guid).Guid
 docker compose -f docker-compose.demo.yml up -d --build --wait
+```
+
+Create a sample pull-request review and inspect the results:
+
+```powershell
 curl.exe --fail -X POST http://localhost:8080/api/demo/reviews
 curl.exe --fail http://localhost:8080/api/reviews/recent
 ```
 
-Open the dashboard at <http://localhost:8088>. Stop and remove demo data with:
+Open the dashboard at <http://localhost:8088>. The review appears in the queue with its quality score and findings. Stop the demo and remove its containers and database volume with:
 
-```bash
+```powershell
 docker compose -f docker-compose.demo.yml down -v
 ```
 
-The demo Compose file requires runtime-generated local credentials and does not commit sample passwords. Production
-Compose requires explicit `POSTGRES_PASSWORD`, `RABBITMQ_USERNAME`, and `RABBITMQ_PASSWORD`, and keeps demo mode
-disabled.
+## Key Capabilities
 
-## Local verification
+- Verify GitHub webhook signatures with HMAC-SHA256.
+- Queue review jobs through RabbitMQ with retry and dead-letter handling.
+- Analyze pull-request diffs using configured OpenAI or Claude providers, with a deterministic provider for local demonstrations and tests.
+- Detect and report structured findings with severity, category, file location, and suggested improvements.
+- Prevent duplicate reviews for a repository and pull-request number.
+- Persist reviews and findings in PostgreSQL.
+- Publish review comments to GitHub and expose service metrics through Micrometer and Prometheus.
+- Inspect review activity, findings, and quality scores in the React workspace.
 
-```bash
+## How Review Engine Works
+
+1. GitHub sends a pull-request event to the webhook endpoint.
+2. The service verifies the webhook signature and queues supported events.
+3. A review worker checks for an existing review and fetches the pull-request diff.
+4. An available analysis provider returns a structured summary, quality score, and findings.
+5. The service stores the result and posts a review comment to GitHub.
+6. The dashboard reads aggregate statistics and recent review records from the API.
+
+## Pull Request Analysis
+
+Reviews focus on issues visible in the submitted diff. The analysis result can include severity, issue type, file path, line number, a concise explanation, and a suggested improvement. Provider prompts treat repository content as untrusted input.
+
+The current dashboard shows aggregate review statistics and the recent review queue. It does not expose a diff viewer or claim complete repository-wide analysis.
+
+## Security Analysis
+
+The review engine can report security-related issues identified in a pull-request diff. GitHub webhook signatures are validated, production Compose requires database and queue credentials, and the service returns sanitized external-service errors. CI includes dependency and secret scanning.
+
+This is not a dedicated secrets scanner or software-composition-analysis service. Findings depend on the diff and the configured analysis provider; review output should be validated by engineers before merge.
+
+## Quality Gates
+
+Use the repository's existing checks before merging:
+
+```powershell
 cd backend
-mvn clean verify
+..\mvnw.cmd --batch-mode clean verify
 
-cd ../frontend
+cd ..\frontend
 npm ci
 npm run lint
-npm run test:coverage
+npm test
 npm run build
-npm audit --audit-level=high
 ```
 
-Verified on June 13, 2026:
+Continuous integration also runs dependency, secret, CodeQL, and container-demo checks.
 
-| Surface | Result |
-|---|---|
-| Backend | 18 tests passed |
-| Backend gated business core | JaCoCo gate met |
-| Frontend | 4 tests passed |
-| Frontend | 93.06% line, 85% branch |
-| npm audit | 0 vulnerabilities |
-| Docker Compose demo | Build, health checks, demo review POST, recent reviews API, and frontend HTTP passed |
+## Architecture
+
+- **Backend:** Java 17 and Spring Boot expose review endpoints, validate webhooks, coordinate providers, persist results, and publish metrics.
+- **Queue:** RabbitMQ separates webhook intake from review execution and routes failed work through retry and dead-letter queues.
+- **Storage:** PostgreSQL stores reviews, findings, and webhook-delivery state.
+- **Integrations:** GitHub operations and AI providers are isolated behind backend interfaces.
+- **Frontend:** React and Vite provide the review dashboard and pull-request detail panel.
+
+See [the architecture guide](docs/architecture.md), [GitHub integration](docs/github-integration.md), and [deployment guide](docs/deployment.md) for implementation and operating details.
+
+## Installation
+
+Requirements: Java 17, Node.js 22, Docker Compose, and Git. Maven is available through the included wrapper.
+
+Clone the repository from your organization's Git host, then configure the environment variables described below. Docker Compose can run the complete local demonstration stack without provider credentials.
 
 ## Configuration
 
-Copy `.env.example` for production-like Compose configuration. Required secrets must be injected at runtime. Keep:
+Production Compose requires `POSTGRES_PASSWORD`, `RABBITMQ_USERNAME`, and `RABBITMQ_PASSWORD`. Set `OPENAI_API_KEY` or `CLAUDE_API_KEY` to enable a remote provider. Configure GitHub App credentials and `GITHUB_WEBHOOK_SECRET` to process real repository events.
 
-```text
-GITHUB_WEBHOOK_SIGNATURE_REQUIRED=true
-CODESAGE_DEMO_ENABLED=false
+The service currently retains the established `CODESAGE_*` environment variables and `codesage.*` Spring properties for deployment compatibility. See [.env.example](.env.example) and [the integration guide](docs/github-integration.md) for the full list and setup details. Keep `GITHUB_WEBHOOK_SIGNATURE_REQUIRED=true` and `CODESAGE_DEMO_ENABLED=false` in production.
+
+## Running Locally
+
+For frontend/backend development without the Docker demo, start the backend in its development profile:
+
+```powershell
+cd backend
+..\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-## Important limitations
+In another terminal, start the frontend:
 
-- Remote provider calls require provider API keys and network egress; the deterministic provider remains the supported
-  no-secrets demo path.
-- Duplicate prevention keys on repository and PR number, not PR head SHA.
-- DLQ reprocessing is manual.
-- Actuator network access control must be enforced by the deployment platform.
-- There is no hosted public deployment, tagged release, or demo video yet.
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
 
-## Roadmap
+The development workspace is served at <http://localhost:5173>. The frontend API base URL can be set with `VITE_API_URL`.
 
-1. Version reviews by PR head SHA.
-2. Add Testcontainers PostgreSQL/RabbitMQ integration tests and reviewed DLQ replay tooling.
-3. Measure and publish controlled webhook/review throughput results.
-4. Add provider-specific prompt regression fixtures for known injection patterns.
+## Docker Deployment
+
+The production Compose file builds the API and frontend alongside PostgreSQL and RabbitMQ:
+
+```powershell
+docker compose up -d --build
+```
+
+Supply the required credentials through the process environment or a local, untracked `.env` file. Demo mode is disabled in this deployment. Review [the deployment guide](docs/deployment.md) for health checks, TLS, backups, and operational safeguards.
+
+## Future Roadmap
+
+- Add a file-level diff view for review findings.
+- Expand the dashboard with time-based review and team effectiveness reporting.
+- Add explicit security findings views for vulnerabilities, exposed secrets, and dependency risk.
+- Add configurable repository quality gates and review policies.
+- Add integration coverage for PostgreSQL and RabbitMQ using Testcontainers.
+
+These are planned enhancements, not capabilities currently exposed by the application.
+
+## Contributing
+
+Contributions should preserve the webhook, API, database, queue, and provider contracts unless a change explicitly updates and tests them. Run the backend and frontend checks listed in [Quality Gates](#quality-gates), and see [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow.

@@ -7,7 +7,7 @@ const demoReviews = [
     id: 1,
     prNumber: 42,
     prTitle: 'Fix authentication bug in login flow',
-    repositoryOwner: 'codesage',
+    repositoryOwner: 'northstar',
     repositoryName: 'backend',
     status: 'COMPLETED',
     qualityScore: 8.5,
@@ -16,25 +16,25 @@ const demoReviews = [
       { severity: 'MEDIUM', type: 'BUG', title: 'Missing null guard on callback', filePath: 'LoginController.java', lineNumber: 31 },
     ],
     createdAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-    prUrl: 'https://github.com/codesage/backend/pull/42',
+    prUrl: 'https://github.com/northstar/backend/pull/42',
   },
   {
     id: 2,
     prNumber: 38,
     prTitle: 'Add user profile management feature',
-    repositoryOwner: 'codesage',
+    repositoryOwner: 'northstar',
     repositoryName: 'frontend',
     status: 'COMPLETED',
     qualityScore: 9.2,
     issues: [{ severity: 'LOW', type: 'CODE_QUALITY', title: 'Extract repeated formatter', filePath: 'Profile.jsx', lineNumber: 46 }],
     createdAt: new Date(Date.now() - 48 * 60 * 1000).toISOString(),
-    prUrl: 'https://github.com/codesage/frontend/pull/38',
+    prUrl: 'https://github.com/northstar/frontend/pull/38',
   },
   {
     id: 3,
     prNumber: 35,
     prTitle: 'Optimize database queries for analytics',
-    repositoryOwner: 'codesage',
+    repositoryOwner: 'northstar',
     repositoryName: 'backend',
     status: 'COMPLETED',
     qualityScore: 7.8,
@@ -44,25 +44,25 @@ const demoReviews = [
       { severity: 'MEDIUM', type: 'CODE_QUALITY', title: 'Query result mapped twice', filePath: 'AnalyticsService.java', lineNumber: 72 },
     ],
     createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-    prUrl: 'https://github.com/codesage/backend/pull/35',
+    prUrl: 'https://github.com/northstar/backend/pull/35',
   },
   {
     id: 4,
     prNumber: 31,
     prTitle: 'Implement real-time notifications',
-    repositoryOwner: 'codesage',
+    repositoryOwner: 'northstar',
     repositoryName: 'backend',
     status: 'PENDING',
     qualityScore: null,
     issues: [],
     createdAt: new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString(),
-    prUrl: 'https://github.com/codesage/backend/pull/31',
+    prUrl: 'https://github.com/northstar/backend/pull/31',
   },
   {
     id: 5,
     prNumber: 28,
     prTitle: 'Update dependencies and fix vulnerabilities',
-    repositoryOwner: 'codesage',
+    repositoryOwner: 'northstar',
     repositoryName: 'platform',
     status: 'FAILED',
     qualityScore: 6.4,
@@ -71,20 +71,17 @@ const demoReviews = [
       { severity: 'HIGH', type: 'SECURITY', title: 'Overly broad CORS configuration', filePath: 'SecurityConfig.java', lineNumber: 22 },
     ],
     createdAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
-    prUrl: 'https://github.com/codesage/platform/pull/28',
+    prUrl: 'https://github.com/northstar/platform/pull/28',
   },
 ]
 
 const navItems = [
-  ['grid', 'Command center'],
-  ['list', 'Review queue'],
-  ['repo', 'Repositories'],
-  ['shield', 'Rules & policies'],
-  ['chart', 'Reports'],
-  ['settings', 'Settings'],
+  ['grid', 'Dashboard', 'dashboard'],
+  ['list', 'Pull requests', 'review-queue'],
+  ['repo', 'Repositories', 'review-queue'],
+  ['shield', 'Security', 'security-center'],
+  ['chart', 'Insights', 'engineering-insights'],
 ]
-
-const trend = [62, 64, 63, 68, 71, 74, 72, 78, 81, 79, 83, 82, 85, 84]
 
 function Icon({ name, size = 18 }) {
   const paths = {
@@ -105,7 +102,7 @@ function Icon({ name, size = 18 }) {
 }
 
 function Logo() {
-  return <div className="brand-mark" aria-hidden="true"><span /><span /></div>
+  return <div className="brand-mark" aria-hidden="true">PR</div>
 }
 
 function formatTimeAgo(timestamp) {
@@ -181,22 +178,31 @@ function App() {
     low: stats.lowIssues || reviews.flatMap((review) => review.issues || []).filter((issue) => issue.severity === 'LOW').length,
   }
   const severityTotal = Object.values(severity).reduce((sum, value) => sum + value, 0) || stats.issuesFound || 0
-  const trendPoints = trend.map((value, index) => `${(index / (trend.length - 1)) * 100},${100 - value}`).join(' ')
+  const recentOutcomes = [
+    { label: 'Reviewed', status: 'COMPLETED', tone: 'reviewed' },
+    { label: 'In review', status: 'PENDING', tone: 'pending' },
+    { label: 'Needs changes', status: 'FAILED', tone: 'failed' },
+  ].map((outcome) => ({
+    ...outcome,
+    count: reviews.filter((review) => review.status === outcome.status).length,
+  }))
+  const reviewedCount = recentOutcomes[0].count
+  const completedRate = reviews.length ? Math.round((reviewedCount / reviews.length) * 100) : 0
 
   return (
     <div className="app-shell">
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="brand"><Logo /><span>CodeSage</span></div>
+        <div className="brand"><Logo /><span>AI PR Review</span></div>
         <nav className="sidebar-nav">
-          {navItems.map(([icon, label], index) => (
-            <button key={label} className={`nav-item ${index === 0 ? 'active' : ''}`} onClick={() => setSidebarOpen(false)}>
+          {navItems.map(([icon, label, target], index) => (
+            <button key={label} className={`nav-item ${index === 0 ? 'active' : ''}`} onClick={() => { document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' }); setSidebarOpen(false) }}>
               <Icon name={icon} /><span>{label}</span>{index === 1 && <small>{stats.activePRs || 0}</small>}
             </button>
           ))}
         </nav>
         <div className="sidebar-foot">
-          <div className="org-avatar">CS</div>
-          <div><span>Workspace</span><strong>CodeSage Labs</strong></div>
+          <div className="org-avatar">EP</div>
+          <div><span>Workspace</span><strong>Engineering Platform</strong></div>
         </div>
       </aside>
 
@@ -204,46 +210,46 @@ function App() {
         <header className="topbar">
           <button className="icon-button menu-button" onClick={() => setSidebarOpen((value) => !value)} aria-label="Toggle menu"><Icon name="menu" /></button>
           <div className="top-search"><Icon name="search" size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search reviews" /><kbd>/</kbd></div>
-          <button className="open-pr" onClick={() => document.getElementById('review-queue')?.scrollIntoView({ behavior: 'smooth' })}>Open PR <span>↗</span></button>
+          <button className="open-pr" onClick={() => document.getElementById('review-queue')?.scrollIntoView({ behavior: 'smooth' })}>View pull requests <span>↗</span></button>
           <button className={`icon-button ${loading ? 'spinning' : ''}`} onClick={fetchDashboardData} aria-label="Refresh dashboard"><Icon name="refresh" /></button>
           <div className="user-avatar">AD</div>
         </header>
 
         <div className="content">
-          <section className="page-intro">
+          <section className="page-intro" id="dashboard">
             <div>
-              <h1>Review command center</h1>
-              <p>Prioritize risk, understand quality, and move pull requests forward.</p>
+              <span className="eyebrow">ENGINEERING WORKSPACE / OVERVIEW</span>
+              <h1>Pull request overview</h1>
+              <p>Review quality, open work, and findings across connected repositories.</p>
             </div>
             <div className={`connection ${usingDemo ? 'demo' : ''}`}><span />{usingDemo ? 'Demo data' : 'Live workspace'}</div>
           </section>
 
           <section className="metrics-grid" aria-label="Dashboard metrics">
-            <Metric label="Quality score" value={stats.avgQualityScore.toFixed(1)} note="+0.6 vs last week"><div className="mini-bars quality">{[3, 5, 4, 7, 6, 9].map((height, i) => <i key={i} style={{ height: `${height * 3}px` }} />)}</div></Metric>
-            <Metric label="Reviews completed" value={stats.totalReviews} note="+18% vs last week"><div className="mini-bars">{[4, 8, 6, 10, 7, 11].map((height, i) => <i key={i} style={{ height: `${height * 3}px` }} />)}</div></Metric>
-            <Metric label="Open in review" value={stats.activePRs} note="3 need attention" tone="warning"><div className="metric-orbit"><span>{stats.activePRs}</span></div></Metric>
-            <Metric label="Issues detected" value={stats.issuesFound} note={`${severity.critical} critical issues`} tone={severity.critical ? 'danger' : 'positive'}><div className="severity-dots"><i /><i /><i /><i /></div></Metric>
+            <Metric label="Average quality score" value={stats.avgQualityScore.toFixed(1)} note="Across reviewed pull requests"><span className="metric-unit">/ 10</span></Metric>
+            <Metric label="Reviews completed" value={stats.totalReviews} note="All recorded reviews" />
+            <Metric label="Open pull requests" value={stats.activePRs} note="Currently in review" tone="warning" />
+            <Metric label="Findings recorded" value={stats.issuesFound} note={`${severity.critical} critical`} tone={severity.critical ? 'danger' : 'positive'} />
           </section>
 
           <section className="insights-grid">
-            <article className="panel trend-panel">
-              <div className="panel-head"><div><h2>Quality score trend</h2><p>Average across reviewed pull requests</p></div><button className="range-button">Last 30 days</button></div>
-              <div className="trend-chart">
-                <div className="chart-labels"><span>10</span><span>7.5</span><span>5</span><span>2.5</span></div>
-                <div className="chart-surface">
-                  <div className="goal-line"><span>Goal 8.0</span></div>
-                  <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Quality score increased over time">
-                    <defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#35e6a1" stopOpacity=".25" /><stop offset="100%" stopColor="#35e6a1" stopOpacity="0" /></linearGradient></defs>
-                    <polygon points={`0,100 ${trendPoints} 100,100`} fill="url(#area)" />
-                    <polyline points={trendPoints} fill="none" stroke="#56e8b0" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-                  </svg>
-                  <div className="chart-dates"><span>May 15</span><span>May 22</span><span>May 29</span><span>Jun 5</span><span>Jun 12</span></div>
-                </div>
+            <article className="panel outcomes-panel" id="engineering-insights">
+              <div className="panel-head"><div><span className="eyebrow">RECENT ACTIVITY</span><h2>Review outcomes</h2><p>Pull requests received in the last seven days</p></div><span className="panel-meta">{reviews.length} reviews</span></div>
+              <div className="outcomes-summary"><strong>{completedRate}%</strong><span>reviewed in this period</span></div>
+              <div className="outcomes-list">
+                {recentOutcomes.map(({ label, count, tone }) => (
+                  <div className="outcome-row" key={label}>
+                    <span className={`outcome-marker ${tone}`} />
+                    <span>{label}</span>
+                    <div className="outcome-track"><i className={tone} style={{ width: `${reviews.length ? (count / reviews.length) * 100 : 0}%` }} /></div>
+                    <strong>{count}</strong>
+                  </div>
+                ))}
               </div>
             </article>
 
-            <article className="panel severity-panel">
-              <div className="panel-head"><div><h2>Issue severity</h2><p>Current review findings</p></div></div>
+            <article className="panel severity-panel" id="security-center">
+              <div className="panel-head"><div><span className="eyebrow">RISK DISTRIBUTION</span><h2>Findings by severity</h2><p>Recorded across all reviews</p></div></div>
               <div className="severity-content">
                 <div className="donut" style={{ '--critical': `${severityTotal ? (severity.critical / severityTotal) * 100 : 0}%`, '--high': `${severityTotal ? ((severity.critical + severity.high) / severityTotal) * 100 : 0}%`, '--medium': `${severityTotal ? ((severity.critical + severity.high + severity.medium) / severityTotal) * 100 : 0}%` }}><div><strong>{severityTotal}</strong><span>issues</span></div></div>
                 <div className="severity-list">
@@ -255,7 +261,7 @@ function App() {
 
           <section className="queue-section" id="review-queue">
             <div className="queue-head">
-              <div><h2>Review queue <span>{filteredReviews.length}</span></h2><p>Most recent pull requests and AI review results</p></div>
+              <div><span className="eyebrow">WORK QUEUE</span><h2>Pull requests <span>{filteredReviews.length}</span></h2><p>Recent reviews and their findings</p></div>
               <div className="queue-tools">
                 <div className="queue-search"><Icon name="search" size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search queue" /></div>
                 <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status"><option value="ALL">All statuses</option><option value="COMPLETED">Reviewed</option><option value="PENDING">In review</option><option value="FAILED">Needs changes</option></select>
@@ -263,12 +269,12 @@ function App() {
             </div>
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Repository</th><th>PR / Title</th><th>Status</th><th>Issues</th><th>Quality</th><th>Updated</th><th aria-label="Actions" /></tr></thead>
+                <thead><tr><th>Repository</th><th>Pull request</th><th>Status</th><th>Findings</th><th>Quality</th><th>Received</th><th aria-label="Actions" /></tr></thead>
                 <tbody>
                   {filteredReviews.map((review) => (
                     <tr key={review.id} onClick={() => setSelectedReview(review)}>
                       <td><code>{review.repositoryOwner}/{review.repositoryName}</code></td>
-                      <td><strong>#{review.prNumber} {review.prTitle}</strong><span>{review.prAuthor || 'Automated review'}</span></td>
+                      <td><strong>#{review.prNumber} {review.prTitle}</strong><span>{review.prAuthor || 'Author unavailable'}</span></td>
                       <td><Status value={review.status} /></td>
                       <td><span className="issue-count">{review.issues?.length || 0}</span></td>
                       <td><Score value={review.qualityScore} /></td>
@@ -284,9 +290,9 @@ function App() {
         </div>
 
         <footer className="health-strip">
-          <div className="health-title"><span className="health-dot" /> System healthy</div>
-          {['GitHub API', 'AI models', 'Review workers', 'Database'].map((service) => <div className="health-service" key={service}><span className="health-dot" /><div><strong>{service}</strong><span>Operational</span></div></div>)}
-          <button onClick={fetchDashboardData}><Icon name="refresh" size={15} /> {loading ? 'Updating' : 'Updated now'}</button>
+          <div className="health-title"><span className="health-dot" /> Review service</div>
+          <span className="health-note">Data refreshes every 30 seconds</span>
+          <button onClick={fetchDashboardData}><Icon name="refresh" size={15} /> {loading ? 'Refreshing' : 'Refresh data'}</button>
         </footer>
       </main>
 
@@ -294,8 +300,10 @@ function App() {
         <div className="drawer-backdrop" onClick={() => setSelectedReview(null)}>
           <aside className="review-drawer" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-head"><div><code>{selectedReview.repositoryOwner}/{selectedReview.repositoryName}</code><h2>#{selectedReview.prNumber} {selectedReview.prTitle}</h2></div><button className="icon-button" onClick={() => setSelectedReview(null)} aria-label="Close details"><Icon name="close" /></button></div>
-            <div className="drawer-summary"><div><span>Status</span><Status value={selectedReview.status} /></div><div><span>Quality score</span><Score value={selectedReview.qualityScore} /></div><div><span>Issues</span><strong>{selectedReview.issues?.length || 0}</strong></div></div>
-            <div className="drawer-section"><h3>AI findings</h3>{selectedReview.issues?.length ? selectedReview.issues.map((issue, index) => <div className="finding" key={`${issue.title}-${index}`}><div className={`finding-severity ${issue.severity?.toLowerCase()}`}>{issue.severity}</div><strong>{issue.title}</strong><code>{issue.filePath}{issue.lineNumber ? `:${issue.lineNumber}` : ''}</code></div>) : <p className="drawer-empty">No blocking findings in this review.</p>}</div>
+            <div className="drawer-summary"><div><span>Status</span><Status value={selectedReview.status} /></div><div><span>Quality score</span><Score value={selectedReview.qualityScore} /></div><div><span>Findings</span><strong>{selectedReview.issues?.length || 0}</strong></div></div>
+            <div className="drawer-timeline"><h3>Review timeline</h3><p><i /> Submitted {formatTimeAgo(selectedReview.createdAt)}</p>{selectedReview.updatedAt && <p><i /> Last updated {formatTimeAgo(selectedReview.updatedAt)}</p>}</div>
+            {selectedReview.analysisSummary && <div className="drawer-section review-summary"><h3>Review summary</h3><p>{selectedReview.analysisSummary}</p></div>}
+            <div className="drawer-section"><h3>Review findings</h3>{selectedReview.issues?.length ? selectedReview.issues.map((issue, index) => <div className="finding" key={`${issue.title}-${index}`}><div className={`finding-severity ${issue.severity?.toLowerCase()}`}>{issue.severity}</div><strong>{issue.title}</strong><code>{issue.filePath}{issue.lineNumber ? `:${issue.lineNumber}` : ''}</code>{issue.description && <p>{issue.description}</p>}{issue.suggestion && <div className="finding-suggestion"><span>Suggested improvement</span><p>{issue.suggestion}</p></div>}</div>) : <p className="drawer-empty">No findings were recorded for this review.</p>}</div>
             {selectedReview.prUrl && <a className="drawer-link" href={selectedReview.prUrl} target="_blank" rel="noreferrer">Open pull request <Icon name="external" size={16} /></a>}
           </aside>
         </div>

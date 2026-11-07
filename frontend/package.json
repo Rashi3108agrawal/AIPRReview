@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "ai-pr-review",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -20,8 +20,6 @@
     "@eslint/js": "^9.39.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@types/react": "^19.2.5",
-    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^9.39.1",

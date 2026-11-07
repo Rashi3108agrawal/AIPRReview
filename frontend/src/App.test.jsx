@@ -14,11 +14,12 @@ const review = {
   id: 1,
   prNumber: 42,
   prTitle: 'Fix authentication bug',
-  repositoryOwner: 'codesage',
+  repositoryOwner: 'northstar',
   repositoryName: 'backend',
   status: 'COMPLETED',
   qualityScore: 8.5,
-  issues: [{ severity: 'HIGH', title: 'Session token persists', filePath: 'AuthService.java', lineNumber: 84 }],
+  analysisSummary: 'The session should be invalidated when the user signs out.',
+  issues: [{ severity: 'HIGH', title: 'Session token persists', description: 'The token remains valid after logout.', suggestion: 'Revoke the token before returning a successful logout response.', filePath: 'AuthService.java', lineNumber: 84 }],
   createdAt: new Date().toISOString(),
 }
 
@@ -43,8 +44,11 @@ describe('App', () => {
     fireEvent.change(screen.getByPlaceholderText('Search queue'), { target: { value: 'authentication' } })
     fireEvent.click(screen.getByText(/Fix authentication bug/))
 
-    expect(screen.getByText('AI findings')).toBeInTheDocument()
+    expect(screen.getByText('Review findings')).toBeInTheDocument()
     expect(screen.getByText('Session token persists')).toBeInTheDocument()
+    expect(screen.getByText('Review summary')).toBeInTheDocument()
+    expect(screen.getByText('Suggested improvement')).toBeInTheDocument()
+    expect(screen.getByText('Review timeline')).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('Close details'))
     fireEvent.click(screen.getByLabelText('Toggle menu'))
     fireEvent.click(screen.getByLabelText('Refresh dashboard'))

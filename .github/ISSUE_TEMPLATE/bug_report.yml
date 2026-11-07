@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible CodeSage defect
+description: Report a reproducible AI PR Review defect
 body:
   - type: textarea
     id: reproduction

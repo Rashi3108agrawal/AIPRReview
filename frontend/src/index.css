@@ -1,9 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  color: #edf7f3;
-  background: #071019;
+  font-family: Inter, system-ui, sans-serif;
+  color: #232323;
+  background: #f5f1ea;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -14,7 +14,7 @@ html { scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 code, kbd { font-family: 'JetBrains Mono', monospace; }
 button, a, input, select { -webkit-tap-highlight-color: transparent; }
-button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #4de6ad; outline-offset: 2px; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #ad6a2d; outline-offset: 2px; }
 ::-webkit-scrollbar { width: 9px; height: 9px; }
-::-webkit-scrollbar-track { background: #071019; }
-::-webkit-scrollbar-thumb { border: 2px solid #071019; border-radius: 10px; background: #2b414c; }
+::-webkit-scrollbar-track { background: #f5f1ea; }
+::-webkit-scrollbar-thumb { border: 2px solid #f5f1ea; border-radius: 8px; background: #c8c0b5; }

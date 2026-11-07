@@ -1,160 +1,54 @@
-# Contributing to CodeSage
+# Contributing
 
-Thank you for your interest in contributing to CodeSage! This document provides guidelines for contributing to the project.
+Thank you for helping improve AI PR Review. Changes should be focused, tested, and consistent with the existing engineering workflow.
 
-## Code of Conduct
+## Before you start
 
-- Be respectful and inclusive
-- Provide constructive feedback
-- Focus on what is best for the community
+- Use Java 17, Node.js 22, and Docker Compose for local development.
+- Review [the architecture guide](docs/architecture.md) and [security policy](SECURITY.md) before changing service boundaries or webhook handling.
+- Open an issue or discussion in the hosting project's contribution system before proposing a large behavior change.
 
-## How to Contribute
+## Development
 
-### Reporting Bugs
+Run PostgreSQL and RabbitMQ locally, then start the backend and frontend in separate terminals:
 
-1. Check if the bug has already been reported in [Issues](https://github.com/albonidrizi/CodeSage/issues)
-2. If not, create a new issue with:
-   - Clear title and description
-   - Steps to reproduce
-   - Expected vs actual behavior
-   - Environment details (OS, Java version, etc.)
-
-### Suggesting Features
-
-1. Check if the feature has been suggested in [Issues](https://github.com/albonidrizi/CodeSage/issues)
-2. Create a new issue with:
-   - Clear use case
-   - Proposed solution
-   - Alternative approaches considered
-
-### Pull Requests
-
-#### For External Contributors
-
-1. **Fork the repository** (click "Fork" button on GitHub)
-2. **Clone your fork**:
-```bash
-git clone https://github.com/YOUR_USERNAME/CodeSage.git
-cd CodeSage
-```
-3. **Add upstream remote** (to sync with original repo):
-```bash
-git remote add upstream https://github.com/albonidrizi/CodeSage.git
-```
-4. **Create a feature branch**: `git checkout -b feature/your-feature-name`
-5. **Make your changes**:
-   - Follow existing code style
-   - Add tests for new functionality
-   - Update documentation as needed
-6. **Commit your changes**: `git commit -m 'feat: add amazing feature'`
-   - Use [Conventional Commits](https://www.conventionalcommits.org/)
-7. **Push to your fork**: `git push origin feature/your-feature-name`
-8. **Open a Pull Request** from your fork to the main repository
-
-### Commit Message Format
-
-Use Conventional Commits:
-
-```
-<type>(<scope>): <subject>
-
-<body>
-
-<footer>
-```
-
-**Types:**
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, etc.)
-- `refactor`: Code refactoring
-- `test`: Adding or updating tests
-- `chore`: Maintenance tasks
-
-**Examples:**
-```
-feat(ai): add Claude 3 Opus support
-fix(webhook): handle missing PR metadata
-docs(readme): update installation instructions
-```
-
-## Development Setup
-
-### Prerequisites
-- Java 17+
-- Node.js 18+
-- Docker & Docker Compose
-- Maven 3.9+
-
-### Local Development
-
-```bash
-# Clone your fork
-git clone https://github.com/YOUR_USERNAME/CodeSage.git
-cd CodeSage
-
-# Start infrastructure
-docker-compose up -d postgres rabbitmq
-
-# Backend
+```powershell
 cd backend
-mvn spring-boot:run
+..\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
+```
 
-# Frontend (in another terminal)
+```powershell
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-### Running Tests
+The frontend is served by Vite at `http://localhost:5173`; the API listens on port `8080`.
 
-```bash
-# Backend
+## Validation
+
+```powershell
 cd backend
-mvn test
+..\mvnw.cmd --batch-mode clean verify
 
-# Frontend
-cd frontend
+cd ..\frontend
+npm run lint
 npm test
+npm run build
 ```
 
-## Code Style
+Add or update tests when behavior changes. For changes to webhook intake, queue processing, persistence, or provider selection, include backend tests that cover the affected path.
 
-### Java
-- Follow [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html)
-- Use Lombok for boilerplate reduction
-- Add JavaDoc for public APIs
+## Pull requests
 
-### JavaScript/React
-- Use ESLint with Airbnb config
-- Use functional components with hooks
-- Add JSDoc for complex functions
+- Keep changes narrowly scoped and explain user-visible effects.
+- Preserve API, database, queue, and configuration compatibility unless a migration is part of the proposal.
+- Include validation commands and their results in the pull request description.
+- Update operator or contributor documentation when setup or operations change.
+- Use a clear commit subject; [Conventional Commits](https://www.conventionalcommits.org/) is encouraged.
 
-### General
-- Keep functions small and focused
-- Write self-documenting code
-- Add comments for complex logic only
+## Code style
 
-## Testing Guidelines
-
-- Write tests for all new features
-- Maintain or improve code coverage
-- Use meaningful test names
-- Test edge cases and error scenarios
-
-## Documentation
-
-- Update README.md for user-facing changes
-- Update docs/ for detailed guides
-- Add inline comments for complex code
-- Update API documentation
-
-## Questions?
-
-Feel free to:
-- Open an issue for discussion
-- Reach out on [LinkedIn](https://linkedin.com/in/albonidrizi)
-- Email: albonidrizi@gmail.com
-
-Thank you for contributing! 🎉
+- Follow the surrounding Java and React conventions.
+- Prefer small, explicit changes over new abstractions.
+- Document non-obvious decisions; avoid comments that restate the code.

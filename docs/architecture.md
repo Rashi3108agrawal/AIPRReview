@@ -1,6 +1,6 @@
 # Architecture
 
-CodeSage accepts GitHub pull-request events, queues review work, fetches a diff, analyzes it through an `AIProvider`,
+AI PR Review accepts GitHub pull-request events, queues review work, fetches a diff, analyzes it through an `AIProvider`,
 persists the result, and posts a review comment.
 
 ```mermaid

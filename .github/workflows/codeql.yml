@@ -1,4 +1,4 @@
-name: CodeQL
+name: AI PR Review CodeQL
 on:
   push:
     branches: [main]

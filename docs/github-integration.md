@@ -1,187 +1,48 @@
-# GitHub Integration Guide
+# GitHub Integration
 
-## Overview
+AI PR Review accepts GitHub pull-request webhooks, processes supported events asynchronously, and posts review comments. The service validates webhook signatures before queueing work.
 
-This guide walks you through setting up CodeSage as a GitHub App to automatically review Pull Requests in your repositories.
+## GitHub App setup
 
-## Prerequisites
+Create a GitHub App in the account that owns the repositories. Configure:
 
-- GitHub account with admin access to the target organization/repositories
-- CodeSage backend deployed and accessible via HTTPS
-- OpenAI or Claude API key
+- **Webhook URL:** `https://<your-host>/api/webhook/github`
+- **Webhook secret:** a unique random value stored as `GITHUB_WEBHOOK_SECRET`
+- **Repository permissions:** Pull requests (read and write), Contents (read), and Metadata (read)
+- **Subscribed event:** Pull request
 
-## Step 1: Create GitHub App
+Install the app only on repositories that should be reviewed. Store the App ID, installation ID, and private key securely; do not commit private keys.
 
-1. Go to your GitHub organization settings (or personal settings)
-2. Navigate to **Developer settings** → **GitHub Apps** → **New GitHub App**
+## Service configuration
 
-### Basic Information
+Provide the applicable settings to the backend:
 
-- **GitHub App name**: `CodeSage` (or your preferred name)
-- **Homepage URL**: Your CodeSage deployment URL
-- **Webhook URL**: `https://your-domain.com/api/webhook/github`
-- **Webhook secret**: Generate a random string (save this for later)
-
-### Permissions
-
-Set the following repository permissions:
-
-- **Pull requests**: Read & Write
-- **Contents**: Read only
-- **Metadata**: Read only
-
-### Subscribe to Events
-
-Check these events:
-
-- ✅ Pull request (opened, synchronize, reopened)
-
-### Where can this GitHub App be installed?
-
-- Select **Any account** (for public use) or **Only on this account** (for private use)
-
-## Step 2: Generate Private Key
-
-1. After creating the app, scroll to **Private keys** section
-2. Click **Generate a private key**
-3. Download the `.pem` file
-4. Save it securely (you'll need this for authentication)
-
-## Step 3: Install the App
-
-1. Go to **Install App** in the left sidebar
-2. Click **Install** next to your organization/account
-3. Choose:
-   - **All repositories** (for organization-wide use)
-   - **Only select repositories** (for specific repos)
-4. Click **Install**
-5. Note the **Installation ID** from the URL (e.g., `https://github.com/settings/installations/12345678`)
-
-## Step 4: Configure CodeSage Backend
-
-Create a `.env` file or set environment variables:
-
-```bash
-# GitHub App Configuration
-GITHUB_APP_ID=123456                    # From GitHub App settings
-GITHUB_APP_PRIVATE_KEY_PATH=/path/to/private-key.pem
-GITHUB_INSTALLATION_ID=987654           # From installation URL
-GITHUB_WEBHOOK_SECRET=                  # From webhook configuration
-
-# AI Provider
-OPENAI_API_KEY=                         # Your OpenAI API key
+```text
+GITHUB_APP_ID=
+GITHUB_APP_PRIVATE_KEY_PATH=
+GITHUB_INSTALLATION_ID=
+GITHUB_WEBHOOK_SECRET=
+GITHUB_WEBHOOK_SIGNATURE_REQUIRED=true
 ```
 
-## Step 5: Test the Integration
+Set `OPENAI_API_KEY` or `CLAUDE_API_KEY` to enable a remote analysis provider. The deterministic provider is intended for demonstration and repeatable tests, not production review coverage.
 
-### 5.1 Create a Test PR
+The established `CODESAGE_*` environment variables and `codesage.*` Spring properties are retained for deployment compatibility. Refer to [.env.example](../.env.example) and `backend/src/main/resources/application.properties` for defaults and optional tuning.
 
-1. Create a new branch in your repository
-2. Make some code changes
-3. Open a Pull Request
+## Validate delivery
 
-### 5.2 Verify Webhook Delivery
+1. Confirm the application health endpoint responds over HTTPS.
+2. Open or synchronize a pull request in an installed repository.
+3. Check GitHub App delivery logs for a successful response.
+4. Confirm the review is recorded with `GET /api/reviews/recent` and that the comment appears on the pull request.
 
-1. Go to your GitHub App settings
-2. Click **Advanced** → **Recent Deliveries**
-3. You should see a `pull_request` event with status `200`
-
-### 5.3 Check CodeSage Response
-
-Within a few seconds, you should see:
-- A comment from CodeSage on your PR
-- Review results in the CodeSage dashboard
+Supported webhook actions are `opened` and `synchronize`. Duplicate prevention currently uses repository identity and pull-request number; a later commit to a previously reviewed pull request is not versioned by head SHA.
 
 ## Troubleshooting
 
-### Webhook not received
+- **No delivery:** Verify the webhook URL, TLS route, firewall, and webhook event subscription.
+- **Signature rejected:** Verify the configured secret and keep signature validation enabled outside local demos.
+- **No review comment:** Check backend logs, provider availability, and the GitHub App's pull-request write permission.
+- **Repeated event:** Review status and queue logs; duplicate deliveries are deliberately idempotent.
 
-**Check:**
-- Is your backend publicly accessible?
-- Is the webhook URL correct?
-- Check firewall/security group settings
-
-**Debug:**
-```bash
-# Check backend logs
-docker logs codesage-backend
-
-# Test webhook endpoint
-curl -X POST https://your-domain.com/api/webhook/github \
-  -H "X-GitHub-Event: ping" \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
-
-### Authentication errors
-
-**Check:**
-- Is the private key path correct?
-- Is the App ID correct?
-- Is the Installation ID correct?
-
-**Debug:**
-```bash
-# Check environment variables
-docker exec codesage-backend env | grep GITHUB
-```
-
-### No comment posted
-
-**Check:**
-- Does the app have "Pull requests: Write" permission?
-- Is the app installed on the repository?
-- Check backend logs for errors
-
-## Security Best Practices
-
-1. **Rotate webhook secret** periodically
-2. **Restrict app installation** to necessary repositories only
-3. **Store private key securely** (never commit to git)
-4. **Use environment variables** for all secrets
-5. **Enable webhook signature verification** (already implemented)
-
-## Advanced Configuration
-
-### Custom Review Rules
-
-Edit `AIService.java` to customize the analysis prompt:
-
-```java
-private String buildAnalysisPrompt(String codeDiff) {
-    return String.format("""
-        Analyze this code with focus on:
-        - Security vulnerabilities (OWASP Top 10)
-        - Performance bottlenecks
-        - Code maintainability
-        ...
-        """, codeDiff);
-}
-```
-
-### Rate Limiting
-
-GitHub API has rate limits:
-- **5,000 requests/hour** for authenticated requests
-- CodeSage caches installation tokens for 50 minutes
-- Implements retry logic with exponential backoff
-
-### Multiple Repositories
-
-The same GitHub App can be used across multiple repositories. Each PR will be analyzed independently.
-
-## Support
-
-If you encounter issues:
-
-1. Check backend logs: `docker logs codesage-backend`
-2. Verify webhook deliveries in GitHub App settings
-3. Test API endpoints manually
-4. Review [GitHub Apps documentation](https://docs.github.com/en/apps)
-
----
-
-**Next Steps:**
-- [Deployment Guide](deployment.md)
-- [API Documentation](api.md)
-- [Contributing Guide](../CONTRIBUTING.md)
+Never include private keys, webhook secrets, or customer payloads in issue reports or logs.
