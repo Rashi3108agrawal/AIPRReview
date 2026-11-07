@@ -2,79 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { reviewsAPI } from './services/api'
 import './App.css'
 
-const demoReviews = [
-  {
-    id: 1,
-    prNumber: 42,
-    prTitle: 'Fix authentication bug in login flow',
-    repositoryOwner: 'northstar',
-    repositoryName: 'backend',
-    status: 'COMPLETED',
-    qualityScore: 8.5,
-    issues: [
-      { severity: 'HIGH', type: 'SECURITY', title: 'Session token persists after logout', filePath: 'AuthService.java', lineNumber: 84 },
-      { severity: 'MEDIUM', type: 'BUG', title: 'Missing null guard on callback', filePath: 'LoginController.java', lineNumber: 31 },
-    ],
-    createdAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-    prUrl: 'https://github.com/northstar/backend/pull/42',
-  },
-  {
-    id: 2,
-    prNumber: 38,
-    prTitle: 'Add user profile management feature',
-    repositoryOwner: 'northstar',
-    repositoryName: 'frontend',
-    status: 'COMPLETED',
-    qualityScore: 9.2,
-    issues: [{ severity: 'LOW', type: 'CODE_QUALITY', title: 'Extract repeated formatter', filePath: 'Profile.jsx', lineNumber: 46 }],
-    createdAt: new Date(Date.now() - 48 * 60 * 1000).toISOString(),
-    prUrl: 'https://github.com/northstar/frontend/pull/38',
-  },
-  {
-    id: 3,
-    prNumber: 35,
-    prTitle: 'Optimize database queries for analytics',
-    repositoryOwner: 'northstar',
-    repositoryName: 'backend',
-    status: 'COMPLETED',
-    qualityScore: 7.8,
-    issues: [
-      { severity: 'CRITICAL', type: 'PERFORMANCE', title: 'Unbounded analytics query', filePath: 'AnalyticsRepository.java', lineNumber: 117 },
-      { severity: 'HIGH', type: 'PERFORMANCE', title: 'Missing composite index', filePath: 'ReviewRepository.java', lineNumber: 29 },
-      { severity: 'MEDIUM', type: 'CODE_QUALITY', title: 'Query result mapped twice', filePath: 'AnalyticsService.java', lineNumber: 72 },
-    ],
-    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-    prUrl: 'https://github.com/northstar/backend/pull/35',
-  },
-  {
-    id: 4,
-    prNumber: 31,
-    prTitle: 'Implement real-time notifications',
-    repositoryOwner: 'northstar',
-    repositoryName: 'backend',
-    status: 'PENDING',
-    qualityScore: null,
-    issues: [],
-    createdAt: new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString(),
-    prUrl: 'https://github.com/northstar/backend/pull/31',
-  },
-  {
-    id: 5,
-    prNumber: 28,
-    prTitle: 'Update dependencies and fix vulnerabilities',
-    repositoryOwner: 'northstar',
-    repositoryName: 'platform',
-    status: 'FAILED',
-    qualityScore: 6.4,
-    issues: [
-      { severity: 'CRITICAL', type: 'SECURITY', title: 'Known vulnerable dependency', filePath: 'pom.xml', lineNumber: 64 },
-      { severity: 'HIGH', type: 'SECURITY', title: 'Overly broad CORS configuration', filePath: 'SecurityConfig.java', lineNumber: 22 },
-    ],
-    createdAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
-    prUrl: 'https://github.com/northstar/platform/pull/28',
-  },
-]
-
 const navItems = [
   ['grid', 'Dashboard', 'dashboard'],
   ['list', 'Pull requests', 'review-queue'],
@@ -138,7 +65,7 @@ function App() {
   const [stats, setStats] = useState({ totalReviews: 0, activePRs: 0, avgQualityScore: 0, issuesFound: 0, criticalIssues: 0, highIssues: 0, mediumIssues: 0, lowIssues: 0 })
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
-  const [usingDemo, setUsingDemo] = useState(false)
+  const [dashboardError, setDashboardError] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [selectedReview, setSelectedReview] = useState(null)
@@ -150,11 +77,9 @@ function App() {
       const [statsData, reviewsData] = await Promise.all([reviewsAPI.getStats(), reviewsAPI.getRecent()])
       setStats(statsData)
       setReviews(reviewsData || [])
-      setUsingDemo(false)
-    } catch {
-      setStats({ totalReviews: 247, activePRs: 12, avgQualityScore: 8.4, issuesFound: 89, criticalIssues: 4, highIssues: 17, mediumIssues: 41, lowIssues: 27 })
-      setReviews(demoReviews)
-      setUsingDemo(true)
+      setDashboardError('')
+    } catch (error) {
+      setDashboardError(error instanceof Error ? error.message : String(error))
     } finally {
       setLoading(false)
     }
@@ -172,12 +97,12 @@ function App() {
   }), [reviews, search, statusFilter])
 
   const severity = {
-    critical: stats.criticalIssues || reviews.flatMap((review) => review.issues || []).filter((issue) => issue.severity === 'CRITICAL').length,
-    high: stats.highIssues || reviews.flatMap((review) => review.issues || []).filter((issue) => issue.severity === 'HIGH').length,
-    medium: stats.mediumIssues || reviews.flatMap((review) => review.issues || []).filter((issue) => issue.severity === 'MEDIUM').length,
-    low: stats.lowIssues || reviews.flatMap((review) => review.issues || []).filter((issue) => issue.severity === 'LOW').length,
+    critical: stats.criticalIssues ?? 0,
+    high: stats.highIssues ?? 0,
+    medium: stats.mediumIssues ?? 0,
+    low: stats.lowIssues ?? 0,
   }
-  const severityTotal = Object.values(severity).reduce((sum, value) => sum + value, 0) || stats.issuesFound || 0
+  const severityTotal = stats.issuesFound ?? Object.values(severity).reduce((sum, value) => sum + value, 0)
   const recentOutcomes = [
     { label: 'Reviewed', status: 'COMPLETED', tone: 'reviewed' },
     { label: 'In review', status: 'PENDING', tone: 'pending' },
@@ -201,8 +126,8 @@ function App() {
           ))}
         </nav>
         <div className="sidebar-foot">
-          <div className="org-avatar">EP</div>
-          <div><span>Workspace</span><strong>Engineering Platform</strong></div>
+          <div className="org-avatar">API</div>
+          <div><span>Review backend</span><strong>{loading ? 'Connecting...' : dashboardError ? 'Unavailable' : 'Connected'}</strong></div>
         </div>
       </aside>
 
@@ -212,18 +137,18 @@ function App() {
           <div className="top-search"><Icon name="search" size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search reviews" /><kbd>/</kbd></div>
           <button className="open-pr" onClick={() => document.getElementById('review-queue')?.scrollIntoView({ behavior: 'smooth' })}>View pull requests <span>↗</span></button>
           <button className={`icon-button ${loading ? 'spinning' : ''}`} onClick={fetchDashboardData} aria-label="Refresh dashboard"><Icon name="refresh" /></button>
-          <div className="user-avatar">AD</div>
         </header>
 
         <div className="content">
           <section className="page-intro" id="dashboard">
             <div>
-              <span className="eyebrow">ENGINEERING WORKSPACE / OVERVIEW</span>
+              <span className="eyebrow">REVIEW SERVICE / OVERVIEW</span>
               <h1>Pull request overview</h1>
               <p>Review quality, open work, and findings across connected repositories.</p>
             </div>
-            <div className={`connection ${usingDemo ? 'demo' : ''}`}><span />{usingDemo ? 'Demo data' : 'Live workspace'}</div>
+            <div className={`connection ${dashboardError ? 'error' : ''}`}><span />{loading ? 'Connecting to backend' : dashboardError ? 'Backend unavailable' : 'Backend connected'}</div>
           </section>
+          {dashboardError && <div className="dashboard-error" role="alert">Unable to load dashboard data: {dashboardError}</div>}
 
           <section className="metrics-grid" aria-label="Dashboard metrics">
             <Metric label="Average quality score" value={stats.avgQualityScore.toFixed(1)} note="Across reviewed pull requests"><span className="metric-unit">/ 10</span></Metric>
@@ -284,7 +209,11 @@ function App() {
                   ))}
                 </tbody>
               </table>
-              {!filteredReviews.length && <div className="empty-state">No reviews match your search.</div>}
+              {!filteredReviews.length && (
+                <div className="empty-state">
+                  {loading ? 'Loading reviews...' : dashboardError ? 'No live reviews are available while the backend is disconnected.' : 'No reviews match your search.'}
+                </div>
+              )}
             </div>
           </section>
         </div>

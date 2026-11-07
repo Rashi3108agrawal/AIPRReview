@@ -55,13 +55,15 @@ describe('App', () => {
     await waitFor(() => expect(reviewsAPI.getStats).toHaveBeenCalledTimes(2))
   })
 
-  it('uses deterministic demo data when the API is unavailable', async () => {
+  it('shows an API error without substituting demo data when the backend is unavailable', async () => {
     reviewsAPI.getStats.mockRejectedValue(new Error('offline'))
     reviewsAPI.getRecent.mockRejectedValue(new Error('offline'))
 
     render(<App />)
 
-    expect(await screen.findByText('Demo data')).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByText('247')).toBeInTheDocument())
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load dashboard data: offline')
+    expect(screen.getByText('Backend unavailable')).toBeInTheDocument()
+    expect(screen.getByText('No live reviews are available while the backend is disconnected.')).toBeInTheDocument()
+    expect(screen.queryByText('247')).not.toBeInTheDocument()
   })
 })

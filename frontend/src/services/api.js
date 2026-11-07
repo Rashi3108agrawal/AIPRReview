@@ -31,7 +31,7 @@ api.interceptors.response.use(
         return response;
     },
     (error) => {
-        console.warn('[API] Response unavailable, dashboard may use demo data:', error.response?.data || error.message);
+        console.warn('[API] Request failed:', error.response?.data || error.message);
 
         if (error.response) {
             // Server responded with error status
